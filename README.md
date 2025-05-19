@@ -10,6 +10,36 @@ Este projeto serve como base para aulas e estudos de Flutter, abordando conceito
 
 ---
 
+## 🚜 Começando
+
+Siga estas etapas para começar a trabalhar neste projeto no seu ambiente local:
+
+1. **Fork**  
+   No GitHub, clique em **Fork** (canto superior direito) para criar uma cópia deste repositório sob sua conta.
+
+2. **Clone**  
+   Copie a URL do seu fork e, no terminal, execute:  
+   ```
+   git clone https://github.com/<seu-usuario>/pokemon-flutter-app.git  
+   cd pokemon-flutter-app  
+   ```
+
+3. **Crie sua própria branch `main`**  
+   Por convenção, crie uma branch isolada chamada `main` para seu fluxo de trabalho:  
+   ```  
+   git checkout -b main  
+   git push -u origin main  
+   ```
+   
+4. **Instale as dependências**  
+  ``` 
+  flutter pub get  
+  ```
+
+5. **Execute o app**  
+
+---
+
 ## 📦 Tecnologias e Pacotes
 
 * **Flutter & Dart**
