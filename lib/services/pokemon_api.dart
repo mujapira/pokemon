@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pokemao/models/navigable_pokemon.dart';
 import '../models/pokemon_list_response.dart';
 import '../models/pokemon_detail_response.dart';
 import '../utils/debounce.dart';
 
 class PokemonApi {
   static const _baseUrl = 'https://pokeapi.co/api/v2';
+  static const _buscarUrl = 'https://beta.pokeapi.co/graphql/v1beta';
   final _debounce = AppDebounce();
 
   Future<PokemonListApiResponse> fetchPokemonList({
@@ -70,5 +72,47 @@ class PokemonApi {
       }
     });
     return completer.future;
+  }
+
+  Future<List<NavigablePokemon>> searchPokemons(String name) async {
+    final endpoint = Uri.parse(_buscarUrl);
+
+    const grapqlQuery = r'''
+      query search($like: String!) {
+        pokemon_v2_pokemon(where : {name :{
+        _like: $like
+        }})
+        {
+        id
+        name
+        }
+      }
+    ''';
+
+    //'select * from pokemon_v2_pokemon where name like %pika%'
+
+    final variables = {'like': '%${name.toLowerCase()}%'};
+    final body = jsonEncode({'query', grapqlQuery, 'variables', variables});
+
+    final res = await http.post(
+      endpoint,
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Erro na busca, status: ${res.statusCode}');
+    }
+
+    final data = jsonDecode(res.body)['data']['pokemon_v2_pokemon'] as List;
+
+    return data.map((item) {
+      final id = item['id'];
+      final pname = item['name'] as String;
+      return NavigablePokemon(
+        name: pname,
+        url: 'https://pokeapi.co/api/v2/pokemon/$id',
+      );
+    }).toList();
   }
 }
