@@ -76,36 +76,26 @@ class PokemonApi {
 
   Future<List<NavigablePokemon>> searchPokemons(String name) async {
     final endpoint = Uri.parse(_buscarUrl);
-
-    const grapqlQuery = r'''
-      query search($like: String!) {
-        pokemon_v2_pokemon(where : {name :{
-        _like: $like
-        }})
-        {
-        id
-        name
-        }
-      }
-    ''';
-
-    //'select * from pokemon_v2_pokemon where name like %pika%'
-
+    // raw string r'''
+    const graphqlQuery = r'''
+ query search($like: String!) {
+pokemon_v2_pokemon(where: { name: { _like: $like } }) {
+ id
+ name
+ }
+ }
+ ''';
     final variables = {'like': '%${name.toLowerCase()}%'};
-    final body = jsonEncode({'query', grapqlQuery, 'variables', variables});
-
+    final body = jsonEncode({'query': graphqlQuery, 'variables': variables});
     final res = await http.post(
       endpoint,
       headers: {'Content-Type': 'application/json'},
       body: body,
     );
-
     if (res.statusCode != 200) {
-      throw Exception('Erro na busca, status: ${res.statusCode}');
+      throw Exception('Erro na busca: status ${res.statusCode}');
     }
-
     final data = jsonDecode(res.body)['data']['pokemon_v2_pokemon'] as List;
-
     return data.map((item) {
       final id = item['id'];
       final pname = item['name'] as String;

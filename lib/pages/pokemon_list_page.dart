@@ -13,7 +13,12 @@ class PokemonListPage extends StatefulWidget {
 
 class _PokemonListPageState extends State<PokemonListPage> {
   final List<NavigablePokemon> _pokemons = [];
+  final List<NavigablePokemon> _searchResults = [];
+
   final ScrollController _scrollController = ScrollController();
+
+  String _searchText = '';
+  bool _isSearching = false;
 
   bool _isLoading = false;
   bool _hasMore = true;
@@ -67,52 +72,113 @@ class _PokemonListPageState extends State<PokemonListPage> {
     }
   }
 
+  Future<void> _performSearch(String query) async {
+    final name = query.trim().toLowerCase();
+
+    if (name.isEmpty) {
+      setState(() {
+        _searchResults.clear();
+      });
+    }
+
+    try {
+      final results = await _api.searchPokemons(name);
+      setState(() {
+        _searchResults
+          ..clear()
+          ..addAll(results);
+      });
+    } catch (e) {
+      debugPrint('Erro ao buscar pokemons $e');
+    } finally {
+      setState(() {
+        _isSearching = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isFiltering = _searchText.isNotEmpty;
+    final displayList = isFiltering ? _searchResults : _pokemons;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: ListView.builder(
-        controller: _scrollController,
-        itemCount: _pokemons.length + (_hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index < _pokemons.length) {
-            final pokemon = _pokemons[index];
-            return ListTile(
-              title: Text(
-                pokemon.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: "buscar pokemon por nome",
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon:
+                    _isSearching
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              subtitle: Text(pokemon.url, style: const TextStyle(fontSize: 15)),
-              trailing: ElevatedButton(
-                style: const ButtonStyle(
-                  backgroundColor: MaterialStatePropertyAll(
-                    Colors.purpleAccent,
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PokemonDetailPage(url: pokemon.url),
+              onChanged: (value) {
+                setState(() => _searchText = value);
+                _performSearch(value);
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount: displayList.length + (_hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index < displayList.length) {
+                  final pokemon = displayList[index];
+                  return ListTile(
+                    title: Text(
+                      pokemon.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      pokemon.url,
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                    trailing: ElevatedButton(
+                      style: const ButtonStyle(
+                        backgroundColor: MaterialStatePropertyAll(
+                          Colors.purpleAccent,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PokemonDetailPage(url: pokemon.url),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Ver mais',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   );
-                },
-                child: const Text(
-                  'Ver mais',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            );
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
-        },
+                } else {
+                  return const Center(child: CircularProgressIndicator());
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
