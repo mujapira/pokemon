@@ -9,12 +9,35 @@ class PokemonApi {
   static const _baseUrl = 'https://pokeapi.co/api/v2';
   final _debounce = AppDebounce();
 
-  Future<PokemonListApiResponse> fetchPokemonList() async {
-    final res = await http.get(Uri.parse('$_baseUrl/pokemon'));
-    if (res.statusCode == 200) {
-      return PokemonListApiResponse.fromJson(jsonDecode(res.body));
-    }
-    throw Exception('Failed to fetch Pokemon list');
+  Future<PokemonListApiResponse> fetchPokemonList({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final completer = Completer<PokemonListApiResponse>();
+    final url = '$_baseUrl/pokemon?limit=$limit&offset=$offset';
+
+    _debounce.call(() async {
+      try {
+        final res = await http.get(Uri.parse(url));
+
+        if (res.statusCode == 200) {
+          final listResponse = PokemonListApiResponse.fromJson(
+            jsonDecode(res.body),
+          );
+          completer.complete(listResponse);
+        } else {
+          completer.completeError(
+            Exception(
+              'Failed to fetch Pokemon list (statusCode: ${res.statusCode})',
+            ),
+          );
+        }
+      } catch (e) {
+        completer.completeError(e);
+      }
+    });
+
+    return completer.future;
   }
 
   Future<PokemonDetailApiResponse> fetchPokemonDetails(String url) {
